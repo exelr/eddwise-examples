@@ -10,10 +10,13 @@
 
 </div>
 <div id="output"></div>
-<script src="//localhost:3000/pingpong/edd.js"></script>
-<script src="../../gen/pingpong/channel.js"></script>
-<script>
-  var wsUri = "ws://localhost:3000/pingpong"
+<!--<script src="//localhost:3000/pingpong/edd.js"></script>-->
+<!--<script src="../../gen/pingpong/channel.js"></script>-->
+<script type="module">
+    import {EddClient} from '/pingpong/edd.js'
+    import {pingpongChannel} from '../../gen/pingpong/channel.js'
+
+    var wsUri = "ws://localhost:3000/pingpong"
   var client = new EddClient(wsUri)
 
   var chpingpong = new pingpongChannel()

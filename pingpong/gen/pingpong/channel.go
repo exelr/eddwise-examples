@@ -24,6 +24,10 @@ func (ch *Pingpong) Name() string {
 	return "pingpong"
 }
 
+func (ch *Pingpong) Alias() string {
+	return "pingpong"
+}
+
 func (ch *Pingpong) Bind(server eddwise.Server) error {
 	ch.server = server
 	return nil
@@ -46,6 +50,7 @@ func (ch *Pingpong) Route(ctx eddwise.Context, evt *eddwise.EventMessage) error 
 	default:
 		return eddwise.ErrMissingServerHandler(evt.Channel, evt.Name)
 
+	// pong
 	case "pong":
 		var msg = &Pong{}
 		if err := ch.server.Codec().Decode(evt.Body, msg); err != nil {
@@ -55,7 +60,6 @@ func (ch *Pingpong) Route(ctx eddwise.Context, evt *eddwise.EventMessage) error 
 			return err
 		}
 		return ch.recv.OnPong(ctx, msg)
-
 	}
 }
 
@@ -64,22 +68,25 @@ func (ch *Pingpong) OnPong(eddwise.Context, *Pong) error {
 }
 
 func (ch *Pingpong) SendPing(client eddwise.Client, msg *Ping) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Pingpong) BroadcastPing(clients []eddwise.Client, msg *Ping) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 // Event structures
 
-// Ping is emitted from server
 type Ping struct {
 	// the Id of the ping
 	Id uint `json:"id"`
 }
 
 func (evt *Ping) GetEventName() string {
+	return "ping"
+}
+
+func (evt *Ping) ProtocolAlias() string {
 	return "ping"
 }
 
@@ -91,13 +98,16 @@ func (evt *Ping) CheckReceivedFields() error {
 	return nil
 }
 
-// after a ping, a Pong is sent from client
 type Pong struct {
 	// the Id of the pong, same as the Id of the received ping
 	Id uint `json:"id"`
 }
 
 func (evt *Pong) GetEventName() string {
+	return "pong"
+}
+
+func (evt *Pong) ProtocolAlias() string {
 	return "pong"
 }
 
