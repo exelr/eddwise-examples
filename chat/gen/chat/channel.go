@@ -22,7 +22,11 @@ type Chat struct {
 }
 
 func (ch *Chat) Name() string {
-	return "Chat"
+	return "chat"
+}
+
+func (ch *Chat) Alias() string {
+	return "chat"
 }
 
 func (ch *Chat) Bind(server eddwise.Server) error {
@@ -47,7 +51,8 @@ func (ch *Chat) Route(ctx eddwise.Context, evt *eddwise.EventMessage) error {
 	default:
 		return eddwise.ErrMissingServerHandler(evt.Channel, evt.Name)
 
-	case "ChangeName":
+	// change_name
+	case "change_name":
 		var msg = &ChangeName{}
 		if err := ch.server.Codec().Decode(evt.Body, msg); err != nil {
 			return err
@@ -56,8 +61,8 @@ func (ch *Chat) Route(ctx eddwise.Context, evt *eddwise.EventMessage) error {
 			return err
 		}
 		return ch.recv.OnChangeName(ctx, msg)
-
-	case "Message":
+	// message
+	case "message":
 		var msg = &Message{}
 		if err := ch.server.Codec().Decode(evt.Body, msg); err != nil {
 			return err
@@ -66,7 +71,6 @@ func (ch *Chat) Route(ctx eddwise.Context, evt *eddwise.EventMessage) error {
 			return err
 		}
 		return ch.recv.OnMessage(ctx, msg)
-
 	}
 }
 
@@ -79,56 +83,59 @@ func (ch *Chat) OnMessage(eddwise.Context, *Message) error {
 }
 
 func (ch *Chat) SendChangeName(client eddwise.Client, msg *ChangeName) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Chat) SendMessage(client eddwise.Client, msg *Message) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Chat) SendUserEnter(client eddwise.Client, msg *UserEnter) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Chat) SendUserLeft(client eddwise.Client, msg *UserLeft) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Chat) SendUserListUpdate(client eddwise.Client, msg *UserListUpdate) error {
-	return client.Send(ch.Name(), msg)
+	return client.Send(ch.Alias(), msg)
 }
 
 func (ch *Chat) BroadcastChangeName(clients []eddwise.Client, msg *ChangeName) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 func (ch *Chat) BroadcastMessage(clients []eddwise.Client, msg *Message) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 func (ch *Chat) BroadcastUserEnter(clients []eddwise.Client, msg *UserEnter) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 func (ch *Chat) BroadcastUserLeft(clients []eddwise.Client, msg *UserLeft) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 func (ch *Chat) BroadcastUserListUpdate(clients []eddwise.Client, msg *UserListUpdate) error {
-	return eddwise.Broadcast(ch.Name(), msg, clients)
+	return eddwise.Broadcast(ch.Alias(), msg, clients)
 }
 
 // Event structures
 
-// ChangeName is sent from client to server and then broadcast by server to all clients
 type ChangeName struct {
 	// the optional UserId is set only by server while broadcasting
-	UserId *uint64 `json:"UserId,omitempty"` // ServerToClient
-	Name   string  `json:"Name"`
+	UserId *uint64 `json:"user_id,omitempty"` // ServerToClient
+	Name   string  `json:"name"`
 }
 
 func (evt *ChangeName) GetEventName() string {
-	return "ChangeName"
+	return "change_name"
+}
+
+func (evt *ChangeName) ProtocolAlias() string {
+	return "change_name"
 }
 
 func (evt *ChangeName) CheckSendFields() error {
@@ -137,20 +144,27 @@ func (evt *ChangeName) CheckSendFields() error {
 
 func (evt *ChangeName) CheckReceivedFields() error {
 	if evt.UserId != nil {
-		return errors.New("UserId is an invalid field")
+		return errors.New("ChangeName.UserId is an invalid field")
 	}
 	return nil
 }
+func (evt *ChangeName) SetUserId(user_id uint64) *ChangeName {
+	evt.UserId = &user_id
+	return evt
+}
 
-// Message is sent from client to server and broadcast to other clients
 type Message struct {
 	// UserId is the optional id of the user. Set only by server, not by client
-	UserId *uint64 `json:"UserId,omitempty"` // ServerToClient
-	Text   string  `json:"Text"`
+	UserId *uint64 `json:"user_id,omitempty"` // ServerToClient
+	Text   string  `json:"text"`
 }
 
 func (evt *Message) GetEventName() string {
-	return "Message"
+	return "message"
+}
+
+func (evt *Message) ProtocolAlias() string {
+	return "message"
 }
 
 func (evt *Message) CheckSendFields() error {
@@ -159,19 +173,26 @@ func (evt *Message) CheckSendFields() error {
 
 func (evt *Message) CheckReceivedFields() error {
 	if evt.UserId != nil {
-		return errors.New("UserId is an invalid field")
+		return errors.New("Message.UserId is an invalid field")
 	}
 	return nil
 }
+func (evt *Message) SetUserId(user_id uint64) *Message {
+	evt.UserId = &user_id
+	return evt
+}
 
-// UserEnter is broadcast by server to all clients when a new client connects
 type UserEnter struct {
-	UserId uint64 `json:"UserId"`
-	Name   string `json:"Name"`
+	UserId uint64 `json:"user_id"`
+	Name   string `json:"name"`
 }
 
 func (evt *UserEnter) GetEventName() string {
-	return "UserEnter"
+	return "user_enter"
+}
+
+func (evt *UserEnter) ProtocolAlias() string {
+	return "user_enter"
 }
 
 func (evt *UserEnter) CheckSendFields() error {
@@ -182,13 +203,16 @@ func (evt *UserEnter) CheckReceivedFields() error {
 	return nil
 }
 
-// UserLeft is broadcast by server to all clients when a client lefts
 type UserLeft struct {
-	UserId uint64 `json:"UserId"`
+	UserId uint64 `json:"user_id"`
 }
 
 func (evt *UserLeft) GetEventName() string {
-	return "UserLeft"
+	return "user_left"
+}
+
+func (evt *UserLeft) ProtocolAlias() string {
+	return "user_left"
 }
 
 func (evt *UserLeft) CheckSendFields() error {
@@ -199,13 +223,16 @@ func (evt *UserLeft) CheckReceivedFields() error {
 	return nil
 }
 
-// UserListUpdate is sent to a new connected client
 type UserListUpdate struct {
-	List map[string]string `json:"List"`
+	List map[string]string `json:"list"`
 }
 
 func (evt *UserListUpdate) GetEventName() string {
-	return "UserListUpdate"
+	return "user_list_update"
+}
+
+func (evt *UserListUpdate) ProtocolAlias() string {
+	return "user_list_update"
 }
 
 func (evt *UserListUpdate) CheckSendFields() error {
